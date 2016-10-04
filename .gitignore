@@ -31,3 +31,10 @@
 # Debug files
 *.dSYM/
 *.su
+
+# Binary files
+src/serv
+
+# Emacs ignores
+*~
+#*#

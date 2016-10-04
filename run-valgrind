@@ -1,0 +1,2 @@
+#!/bin/bash
+valgrind --leak-check=yes ./src/serv $(/labs/tsam16/my_port)
