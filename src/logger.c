@@ -1,8 +1,8 @@
 #include "logger.h"
 
-void logEntry(struct sockaddr_in *client, struct httpRequest *req){
+void logEntry(struct sockaddr_in *client, struct httpRequest *req, int statusCode){
     GString *entry = g_string_new("");
-    createLogEntry(entry, req, client, 200);
+    createLogEntry(entry, req, client, statusCode);
 
     FILE *fp = fopen("log.txt", "a");
 

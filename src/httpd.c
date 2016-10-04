@@ -145,13 +145,6 @@ int main(int arg, char** argv)
         createResponse(&req, &response, &client);
         sendResponse(&response, connectionSocket);
 
-        logEntry(&client, &req);
-
-        /* logFile(&client, &req); */
-        /* Send the message back. */
-        /* send(connectionSocket, response->str, (size_t) response->len, 0); */
-
-
 //        select(connectionSocket, &sockets, NULL, NULL,&timeout);
 
         /* select(connectionSocket, &sockets, NULL, NULL,&timeout); */

@@ -4,6 +4,8 @@
 
 #include "header.h"
 #include "utility.h"
+#include "logger.h"
+
 #include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,11 +35,10 @@ void generateHeadResponse(struct httpResponse *resp, unsigned int statusCode);
  *
  * As is stated in project description
  */
-void generateGetResponse(struct httpResponse *resp,
-                         struct httpRequest *req,
-                         unsigned int statusCode,
-                         GString *ip,
-                         GString *port);
+void generateGetResponse(struct httpResponse *resp, struct httpRequest *req,
+                         int statusCode, struct sockaddr_in *client);
+
+void generatePostResponse(struct httpResponse *resp, struct httpRequest *req, int statusCode);
 
 
 void sendFile(char *file, int sockId);

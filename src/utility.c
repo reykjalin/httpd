@@ -28,3 +28,8 @@ void extractHostFromHeaders(GString *headers, GString *host){
         g_strfreev(hostLine);
     }
 }
+
+void addHtmlToMsgBody(GString *msgBody){
+    g_string_prepend(msgBody, "<!DOCTYPE html>\n<html>\n<body>\n<p>");
+    g_string_append(msgBody, "</p>\n</body>\n</html>");
+}

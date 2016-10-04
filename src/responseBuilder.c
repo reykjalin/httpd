@@ -1,11 +1,5 @@
 #include "responseBuilder.h"
 
-const int HEADER_LENGTH = 6;
-
-void respond() {
-   return;
-}
-
 void initHttpResponseStruct(struct httpResponse *response){
     response->statusLine = g_string_new("");
     response->headers = g_string_new("");
@@ -20,44 +14,43 @@ void freeHttpResponseStruct(struct httpResponse *response){
 
 
 void createResponse(struct httpRequest *request, struct httpResponse *response, struct sockaddr_in *client) {
-    if(strcmp(request->method->str, "GET") == 0) {
-        char ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &(client->sin_addr), ip, INET_ADDRSTRLEN);
-        GString *ipaddr = g_string_new(ip);
+    int responseCode = 200;
 
-        GString *port = g_string_new("");
-        g_string_printf(port, "%d", client->sin_port);
-
-        generateGetResponse(response, request, 200, ipaddr, port);
-
-        g_string_free(ipaddr, TRUE);
-        g_string_free(port, TRUE);
+    if( !strncmp(request->method->str, "GET", 3) ) {
+        // GET REQUEST
+        generateGetResponse(response, request, responseCode, client);
     }
-    else if(strncmp(request->method->str, "HEAD", 4) == 0) {
+    else if( !strncmp(request->method->str, "HEAD", 4) ) {
         // HEAD REQUEST
-        generateHeadResponse(response, 200);
+        generateHeadResponse(response, responseCode);
     }
-    else if(strncmp(request->method->str, "POST", 4) == 0) {
+    else if( !strncmp(request->method->str, "POST", 4) ) {
         // POST REQUEST
+        generatePostResponse(response, request, responseCode);
     }
     else {
         // INVALID REQUEST
     }
+
+    logEntry(client, request, responseCode);
 }
 
 void sendResponse(struct httpResponse *response, int connectionSocket){
     GString *msg = g_string_new("");
     g_string_append(msg, response->statusLine->str);
 
-    if(strncmp(response->msgBody->str, "", 1)){
+    // ADD headers
+    if(strncmp(response->headers->str, "", 1)){
         g_string_append(msg, response->headers->str);
     }
 
+    // ADD message body
     if(strncmp(response->msgBody->str, "", 1)){
         g_string_append(msg, "\r\n"); // Empty line before msgbody
         g_string_append(msg, response->msgBody->str);
     }
 
+    // SEND response
     send(connectionSocket, msg->str, (size_t) msg->len, 0);
     g_string_free(msg, TRUE);
 }
@@ -71,33 +64,58 @@ void generateHeadResponse(struct httpResponse *resp, unsigned int statusCode) {
     }
 }
 
-void generateGetResponse(struct httpResponse *resp,
-                         struct httpRequest *req,
-                         unsigned int statusCode,
-                         GString *ip,
-                         GString *port)
+void generateGetResponse(struct httpResponse *resp, struct httpRequest *req,
+                         int statusCode, struct sockaddr_in *client)
 {
     // Status line
     g_string_printf(resp->statusLine, "%d", statusCode);
-    g_string_prepend(resp->statusLine, "HTTP/1.1");
-    if(statusCode == 200){
-        g_string_append(resp->statusLine, "OK\r\n");
-    }
+    g_string_prepend(resp->statusLine, "HTTP/1.1 ");
+    if(statusCode == 200)
+        g_string_append(resp->statusLine, " OK\r\n");
 
     // Message body
-    GString *host = g_string_new("");
-    extractHostFromHeaders(req->headers, host);
+    GString *ip = g_string_new("");
+    GString *url = g_string_new("");
 
-    g_string_printf(resp->msgBody, "http://%s%s %s:%s",
-                    host->str, req->target->str, ip->str, port->str);
-    g_string_prepend(resp->msgBody, "<!DOCTYPE html>\n<body>\n<p>");
-    g_string_append(resp->msgBody, "</p>\n</body>");
+    // Get url and ip:port
+    getIpAndPort(ip, client);
+    getURL(req, url);
+
+    // Add requested data
+    g_string_append(resp->msgBody, url->str);
+    g_string_append(resp->msgBody, " ");
+    g_string_append(resp->msgBody, ip->str);
+
+    // Add html data
+    addHtmlToMsgBody(resp->msgBody);
 
     // Headers
     g_string_printf(resp->headers, "%d\r\n", (int) resp->msgBody->len);
     g_string_prepend(resp->headers, "Content-Length: ");
 
-    g_string_free(host, TRUE);
+    g_string_free(ip, TRUE);
+    g_string_free(url, TRUE);
+}
+
+
+void generatePostResponse(struct httpResponse *resp, struct httpRequest *req, int statusCode)
+{
+    // Status line
+    g_string_printf(resp->statusLine, "%d", statusCode);
+    g_string_prepend(resp->statusLine, "HTTP/1.1 ");
+    if(statusCode == 200)
+        g_string_append(resp->statusLine, " OK\r\n");
+
+    // Message body
+    if(strncmp(req->message->str, "", 1))
+        g_string_assign(resp->msgBody, req->message->str);
+
+    // Add html data
+    addHtmlToMsgBody(resp->msgBody);
+
+    // Headers
+    g_string_printf(resp->headers, "%d\r\n", (int) resp->msgBody->len);
+    g_string_prepend(resp->headers, "Content-Length: ");
 }
 
 int readFile(struct httpRequest *req, struct httpResponse *resp)

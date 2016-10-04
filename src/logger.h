@@ -9,7 +9,7 @@
 #include "header.h"
 #include "utility.h"
 
-void logEntry(struct sockaddr_in *client, struct httpRequest *req);
+void logEntry(struct sockaddr_in *client, struct httpRequest *req, int statusCode);
 
 void createLogEntry(GString *entry, struct httpRequest *req, struct sockaddr_in *client, int responseCode);
 
