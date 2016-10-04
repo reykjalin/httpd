@@ -12,6 +12,9 @@ void logEntry(struct sockaddr_in *client, struct httpRequest *req){
     else {
         printf("error opening log file\n");
     }
+    fclose(fp);
+
+    g_string_free(entry, TRUE);
 }
 
 

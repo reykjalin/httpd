@@ -38,3 +38,11 @@ src/serv
 # Emacs ignores
 *~
 #*#
+
+# Dotfiles
+.*
+src/.*
+
+# Log file
+log.txt
+src/log.txt
