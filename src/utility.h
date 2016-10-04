@@ -11,6 +11,8 @@ void getIpAndPort(GString *ip, struct sockaddr_in *client);
 void getURL(struct httpRequest *req, GString *url);
 void extractHostFromHeaders(GString *headers, GString *host);
 
-void addHtmlToMsgBody(GString *msgBody);
+void addHtmlToMsgBody(GString *msgBody, GString *colour);
+void parseQuery(GString *target, GString *query);
+void parsePage(GString *target, GString *page);
 
 #endif

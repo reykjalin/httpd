@@ -40,12 +40,12 @@ void sendResponse(struct httpResponse *response, int connectionSocket){
     g_string_append(msg, response->statusLine->str);
 
     // ADD headers
-    if(strncmp(response->headers->str, "", 1)){
+    if(response->headers->len > 0){
         g_string_append(msg, response->headers->str);
     }
 
     // ADD message body
-    if(strncmp(response->msgBody->str, "", 1)){
+    if(response->msgBody->len > 0){
         g_string_append(msg, "\r\n"); // Empty line before msgbody
         g_string_append(msg, response->msgBody->str);
     }
@@ -87,7 +87,8 @@ void generateGetResponse(struct httpResponse *resp, struct httpRequest *req,
     g_string_append(resp->msgBody, ip->str);
 
     // Add html data
-    addHtmlToMsgBody(resp->msgBody);
+    GString *color = g_string_new("");
+    addHtmlToMsgBody(resp->msgBody, color);
 
     // Headers
     g_string_printf(resp->headers, "%d\r\n", (int) resp->msgBody->len);
@@ -107,11 +108,38 @@ void generatePostResponse(struct httpResponse *resp, struct httpRequest *req, in
         g_string_append(resp->statusLine, " OK\r\n");
 
     // Message body
-    if(strncmp(req->message->str, "", 1))
+    if(req->message->len > 0){
         g_string_assign(resp->msgBody, req->message->str);
+        g_string_append(resp->msgBody, "\n");
+    }
 
-    // Add html data
-    addHtmlToMsgBody(resp->msgBody);
+    GString *page = g_string_new("");
+    parsePage(req->target, page);
+    printf("page: %s\n\n", page->str);
+
+    GString *query = g_string_new("");
+    parseQuery(req->target, query);
+    if(query->len > 0)
+        g_string_append(resp->msgBody, query->str);
+
+    GString *colour = g_string_new("");
+
+    if( !strncmp(page->str, "test", 4) ){
+        // test page requested
+    }
+    else if( !strncmp(page->str, "colour", 6) ){
+        // colour page requested
+        g_string_assign(colour, &query->str[3]);
+    }
+    else{
+        // Add html data
+    }
+
+    addHtmlToMsgBody(resp->msgBody, colour);
+
+
+    g_string_free(query, TRUE);
+    g_string_free(page, TRUE);
 
     // Headers
     g_string_printf(resp->headers, "%d\r\n", (int) resp->msgBody->len);

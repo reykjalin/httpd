@@ -38,6 +38,8 @@ src/serv
 # Emacs ignores
 *~
 #*#
+*swp
+src/*swp
 
 # Dotfiles
 .*
