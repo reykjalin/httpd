@@ -39,16 +39,18 @@ void addHtmlToMsgBody(GString *msgBody, GString *colour){
         g_string_append(msgBody, "</p>\n");
         counter += 1;
     }
-    g_string_prepend(msgBody, "<!DOCTYPE html>\n<html>\n");
     if(colour->len > 0){
-        g_string_append(msgBody, "<body style=\"background-color:");
-        g_string_append(msgBody, colour->str);
-        g_string_append(msgBody, ";\">\n");
+        g_string_prepend(msgBody, ";\">\n");
+        g_string_prepend(msgBody, colour->str);
+        g_string_prepend(msgBody, "<body style=\"background-color:");
     }
     else
-        g_string_append(msgBody, "<body>\n");
+        g_string_prepend(msgBody, "<body>\n");
 
+    g_string_prepend(msgBody, "<!DOCTYPE html>\n<html>\n");
     g_string_append(msgBody, "</body>\n</html>\r\n");
+
+    g_strfreev(msgArray);
 }
 
 void parseQuery(GString *target, GString *query){

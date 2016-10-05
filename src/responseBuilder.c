@@ -77,18 +77,43 @@ void generateGetResponse(struct httpResponse *resp, struct httpRequest *req,
     GString *ip = g_string_new("");
     GString *url = g_string_new("");
 
-    // Get url and ip:port
-    getIpAndPort(ip, client);
-    getURL(req, url);
 
-    // Add requested data
-    g_string_append(resp->msgBody, url->str);
-    g_string_append(resp->msgBody, " ");
-    g_string_append(resp->msgBody, ip->str);
+    GString *page = g_string_new("");
+    GString *colour = g_string_new("");
+    GString *query = g_string_new("");
+
+    parsePage(req->target, page);
+    parseQuery(req->target, query);
+
+    if(strncmp(page->str, "colour", 6)){
+        // Get url and ip:port
+        getIpAndPort(ip, client);
+        getURL(req, url);
+
+        // Add requested data
+        g_string_append(resp->msgBody, url->str);
+        g_string_append(resp->msgBody, " ");
+        g_string_append(resp->msgBody, ip->str);
+
+        if( !strncmp(page->str, "test", 4) ){
+            // test page requested
+            if(query->len > 0){
+                g_string_append(resp->msgBody, "\n");
+                g_string_append(resp->msgBody, query->str);
+            }
+
+        }
+    }
+    else{
+        // colour page requested
+        if(query->len > 3 && g_str_has_prefix(query->str, "bg="))
+            g_string_assign(colour, &query->str[3]);
+        // color query not found
+    }
+
 
     // Add html data
-    GString *color = g_string_new("");
-    addHtmlToMsgBody(resp->msgBody, color);
+    addHtmlToMsgBody(resp->msgBody, colour);
 
     // Headers
     g_string_printf(resp->headers, "%d\r\n", (int) resp->msgBody->len);
@@ -96,6 +121,9 @@ void generateGetResponse(struct httpResponse *resp, struct httpRequest *req,
 
     g_string_free(ip, TRUE);
     g_string_free(url, TRUE);
+    g_string_free(page, TRUE);
+    g_string_free(colour, TRUE);
+    g_string_free(query, TRUE);
 }
 
 
@@ -106,44 +134,19 @@ void generatePostResponse(struct httpResponse *resp, struct httpRequest *req, in
     g_string_prepend(resp->statusLine, "HTTP/1.1 ");
     if(statusCode == 200)
         g_string_append(resp->statusLine, " OK\r\n");
-
     // Message body
     if(req->message->len > 0){
         g_string_assign(resp->msgBody, req->message->str);
-        g_string_append(resp->msgBody, "\n");
     }
-
-    GString *page = g_string_new("");
-    parsePage(req->target, page);
-    printf("page: %s\n\n", page->str);
-
-    GString *query = g_string_new("");
-    parseQuery(req->target, query);
-    if(query->len > 0)
-        g_string_append(resp->msgBody, query->str);
 
     GString *colour = g_string_new("");
-
-    if( !strncmp(page->str, "test", 4) ){
-        // test page requested
-    }
-    else if( !strncmp(page->str, "colour", 6) ){
-        // colour page requested
-        g_string_assign(colour, &query->str[3]);
-    }
-    else{
-        // Add html data
-    }
-
     addHtmlToMsgBody(resp->msgBody, colour);
-
-
-    g_string_free(query, TRUE);
-    g_string_free(page, TRUE);
 
     // Headers
     g_string_printf(resp->headers, "%d\r\n", (int) resp->msgBody->len);
     g_string_prepend(resp->headers, "Content-Length: ");
+
+    g_string_free(colour, TRUE);
 }
 
 int readFile(struct httpRequest *req, struct httpResponse *resp)
