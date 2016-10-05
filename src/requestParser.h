@@ -1,7 +1,9 @@
 #ifndef REQUEST_PARSER_H
 #define REQUEST_PARSER_H
 
+#include <stdio.h>
 #include "header.h"
+#include "utility.h"
 
 /**
  * parseRequest - Parses request message 'req' received from client

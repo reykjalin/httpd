@@ -1,0 +1,31 @@
+A socket is initialized at the specified port (see usage) and the server waits for requests.
+
+When a request is received, it's processed and all information is extracted and stored.
+If the request was empty, the server waits for up to 30 seconds before closing the connection.
+
+After the request has been processed a response is generated depending on what kind of
+request was received.
+HEAD:
+  A simple header with 200 OK response is sent back
+GET:
+  A page is generated containing the requested URL and headers, although headers are currently
+  not working due to access issues in the data structure. Headers are accessible through the
+  httpRequest struct, but not through the hash table provided in utility.h.
+POST:
+  A page is generated containing the posted data
+
+If the test page is requested a page is generated containing the URI query in the URL.
+If the colour page is requested WITH a query for bg an empty page is generated with the
+background color set as the one in the query.
+
+An error is sent (400 Bad Request) if the http client fails to provide a Host header.
+No other error responses have been implemented.
+
+
+Usage:
+To build the program move to the main directory and run
+make -C src
+
+To run the server run
+./serv <port>
+    port: Port number used for server connection

@@ -102,74 +102,54 @@ int main(int arg, char** argv)
     FD_SET(welcomeSocket, &sockets);
 
     for (;;) {
-
-        /*set the timeout as 30 sek */
-        /* timeout.tv_sec = 30; */
-        /* timeout.tv_usec = 0; */
-
-        /*initialize the socket set */
-    //    FD_ZERO(&sockets);
-
-        /*add the welcome socket to the socket set */
-      //  FD_SET(welcomeSocket, &sockets);
-/*
-        if( select(welcomeSocket + 1, &sockets, NULL, NULL, &timeout) == 0)
-        {
-          printf("timeout\n");
-        }*/
-
         /* We first have to accept a TCP connection, connfd is a fresh
            handle dedicated to this connection. */
         socklen_t len = (socklen_t) sizeof(client);
         int connectionSocket = accept(welcomeSocket, (struct sockaddr *) &client, &len);
 
-        /*if( select(welcomeSocket + 1, & sockets, NULL , NULL, &timeout) == 0)
-        {
-            printf("timeout\n");
-        }*/
+        gboolean closeConnection = FALSE;
 
-        /*Add the connection socket to the socket set */
-        /* FD_SET(connectionSocket, &sockets); */
-        /* Receive from connfd, not sockfd. */
-        ssize_t n = recv(connectionSocket, message, sizeof(message) - 1, 0);
+        while(!closeConnection){
+            /* Receive from connfd, not sockfd. */
+            ssize_t n;
+            gint64 time = g_get_monotonic_time();
+            while( (n = recv(connectionSocket, message, sizeof(message) - 1, 0)) == 0){
+                if(g_get_monotonic_time() - time > 30000000){
+                    printf("timeout\n");
+                    break;
+                }
+            }
+            if(n == 0)
+                break;
 
-        message[n] = '\0';
-        fprintf(stdout, "Received:\n%s\n", message);
+            message[n] = '\0';
+            fprintf(stdout, "Received:\n%s\n", message);
 
-        struct httpRequest req;
-        initRequestStruct(&req);
-        parseRequest(message, &req);
+            struct httpRequest req;
+            initRequestStruct(&req);
+            parseRequest(message, &req);
 
-        struct httpResponse response;
-        initHttpResponseStruct(&response);
-        createResponse(&req, &response, &client);
-        sendResponse(&response, connectionSocket);
+            if(g_strstr_len(req.headers->str, req.headers->len, "Connection: ") &&
+               ( g_strstr_len(req.headers->str, req.headers->len, "Connection: keep-alive") ||
+                 g_strstr_len(req.headers->str, req.headers->len, "Connection: Keep-Alive"))
+               ){
+                closeConnection = FALSE;
+            }
+            else{
+                closeConnection = TRUE;
+            }
 
-//        select(connectionSocket, &sockets, NULL, NULL,&timeout);
+            struct httpResponse response;
+            initHttpResponseStruct(&response);
+            createResponse(&req, &response, &client, closeConnection);
+            sendResponse(&response, connectionSocket);
 
-        /* select(connectionSocket, &sockets, NULL, NULL,&timeout); */
-
-        freeRequestStruct(&req);
-        freeHttpResponseStruct(&response);
+            freeRequestStruct(&req);
+            freeHttpResponseStruct(&response);
+            freeDict();
+        }
 
         shutdown(connectionSocket, SHUT_RDWR);
         close(connectionSocket);
-
-        /* Close the connection. */
-        // HAFA WHILE LYKKJU HÉR ?
-        /* if( select(welcomeSocket + 1 , &sockets, NULL, NULL,&timeout) > 0) */
-        /* { */
-
-        /*    printf("timeout\n"); */
-        /*    shutdown(connectionSocket, SHUT_RDWR); */
-        /*    close(connectionSocket); */
-        /*  } */
-        /*  else */
-        /*  { */
-
-        /*    printf("%d\n", welcomeSocket); */
-        /*    printf("%d\n", connectionSocket); */
-        /*    printf("not timeout\n"); */
-        /* } */
     }
 }

@@ -13,23 +13,33 @@ void freeHttpResponseStruct(struct httpResponse *response){
 
 
 
-void createResponse(struct httpRequest *request, struct httpResponse *response, struct sockaddr_in *client) {
+void createResponse(struct httpRequest *request, struct httpResponse *response,
+                    struct sockaddr_in *client, gboolean closeConnection)
+{
     int responseCode = 200;
+
+    if( !g_strstr_len(request->headers->str, request->headers->len, "Host: ") ){
+        // INVALID HEADERS
+        responseCode = 400;
+    }
+
+    generateStatusLine(response, responseCode);
+    generateConnectionHeader(response->headers, closeConnection);
+
+    if(responseCode != 200)
+        return;
 
     if( !strncmp(request->method->str, "GET", 3) ) {
         // GET REQUEST
-        generateGetResponse(response, request, responseCode, client);
-    }
-    else if( !strncmp(request->method->str, "HEAD", 4) ) {
-        // HEAD REQUEST
-        generateHeadResponse(response, responseCode);
+        generateGetResponse(response, request, client);
     }
     else if( !strncmp(request->method->str, "POST", 4) ) {
         // POST REQUEST
-        generatePostResponse(response, request, responseCode);
+        generatePostResponse(response, request);
     }
-    else {
+    else if( strncmp(request->method->str, "HEAD", 4) ) {
         // INVALID REQUEST
+        // EVERYTHING BUT GET, POST AND HEAD REQUESTS
     }
 
     logEntry(client, request, responseCode);
@@ -56,30 +66,65 @@ void sendResponse(struct httpResponse *response, int connectionSocket){
 }
 
 
-void generateHeadResponse(struct httpResponse *resp, unsigned int statusCode) {
-    g_string_printf(resp->statusLine, "%d", statusCode);
-    g_string_prepend(resp->statusLine, "HTTP/1.1 ");
-    if(statusCode == 200){
-        g_string_append(resp->statusLine, " OK\r\n");
-    }
-}
-
-void generateGetResponse(struct httpResponse *resp, struct httpRequest *req,
-                         int statusCode, struct sockaddr_in *client)
-{
-    // Status line
+void generateStatusLine(struct httpResponse *resp, unsigned int statusCode) {
     g_string_printf(resp->statusLine, "%d", statusCode);
     g_string_prepend(resp->statusLine, "HTTP/1.1 ");
     if(statusCode == 200)
         g_string_append(resp->statusLine, " OK\r\n");
+    else if(statusCode == 400)
+        g_string_append(resp->statusLine, " Bad Request\r\n");
+}
 
-    // Message body
+void generateConnectionHeader(GString *headers, gboolean closeConnection){
+    if(closeConnection)
+        g_string_assign(headers, "Connection: close\r\n");
+    else
+        g_string_assign(headers, "Connection: keep-alive\r\n");
+}
+
+void generateGetResponse(struct httpResponse *resp, struct httpRequest *req, struct sockaddr_in *client)
+{
+    // Generate message body
+    GString *colour = g_string_new("");
+    generateGetMsgBody(resp, colour, req, client);
+
+    if(colour->len <= 0){
+        GString *header = g_string_new("Connection");
+        getHeaderData(header);
+        if(header->len > 0){
+            g_string_append(resp->msgBody, "\r\n");
+            g_string_append(resp->msgBody, req->headers->str);
+        }
+
+        g_string_assign(header, "Host");
+        getHeaderData(header);
+
+        if(header->len > 0){
+            g_string_append(resp->msgBody, "\r\n");
+            g_string_append(resp->msgBody, req->headers->str);
+        }
+        g_string_append(resp->msgBody, "\r\n");
+        g_string_free(header, TRUE);
+    }
+
+    // Add html data
+    addHtmlToMsgBody(resp->msgBody, colour);
+
+    // Headers
+    GString *contentLength = g_string_new("");
+    g_string_printf(contentLength, "Content-Length: %d\r\n", (int) resp->msgBody->len);
+    g_string_prepend(resp->headers, contentLength->str);
+
+    g_string_free(contentLength, TRUE);
+    g_string_free(colour, TRUE);
+}
+
+void generateGetMsgBody(struct httpResponse *resp, GString *colour,
+                        struct httpRequest *req, struct sockaddr_in *client){
+     // Message body
     GString *ip = g_string_new("");
     GString *url = g_string_new("");
-
-
     GString *page = g_string_new("");
-    GString *colour = g_string_new("");
     GString *query = g_string_new("");
 
     parsePage(req->target, page);
@@ -98,7 +143,7 @@ void generateGetResponse(struct httpResponse *resp, struct httpRequest *req,
         if( !strncmp(page->str, "test", 4) ){
             // test page requested
             if(query->len > 0){
-                g_string_append(resp->msgBody, "\n");
+                g_string_append(resp->msgBody, "\r\n");
                 g_string_append(resp->msgBody, query->str);
             }
 
@@ -106,79 +151,48 @@ void generateGetResponse(struct httpResponse *resp, struct httpRequest *req,
     }
     else{
         // colour page requested
-        if(query->len > 3 && g_str_has_prefix(query->str, "bg="))
+        char *cookie;
+        if(query->len > 3 && g_str_has_prefix(query->str, "bg=")){
             g_string_assign(colour, &query->str[3]);
+            g_string_append(resp->headers, "Set-Cookie: ");
+            g_string_append(resp->headers, query->str);
+            g_string_append(resp->headers, "\r\n");
+        }
+        else if( (cookie = g_strstr_len(req->headers->str, req->headers->len, "Cookie: ")) ){
+            char **cookieArray = g_strsplit(cookie, ": ", 2);
+            if(g_str_has_prefix(cookieArray[1], "bg=")){
+                g_string_assign(colour, &cookieArray[1][3]);
+                g_string_append(resp->headers, "Set-Cookie: ");
+                g_string_append(resp->headers, cookieArray[1]);
+                g_string_append(resp->headers, "\r\n");
+            }
+        }
         // color query not found
     }
-
-
-    // Add html data
-    addHtmlToMsgBody(resp->msgBody, colour);
-
-    // Headers
-    g_string_printf(resp->headers, "%d\r\n", (int) resp->msgBody->len);
-    g_string_prepend(resp->headers, "Content-Length: ");
 
     g_string_free(ip, TRUE);
     g_string_free(url, TRUE);
     g_string_free(page, TRUE);
-    g_string_free(colour, TRUE);
     g_string_free(query, TRUE);
 }
 
 
-void generatePostResponse(struct httpResponse *resp, struct httpRequest *req, int statusCode)
+void generatePostResponse(struct httpResponse *resp, struct httpRequest *req)
 {
-    // Status line
-    g_string_printf(resp->statusLine, "%d", statusCode);
-    g_string_prepend(resp->statusLine, "HTTP/1.1 ");
-    if(statusCode == 200)
-        g_string_append(resp->statusLine, " OK\r\n");
     // Message body
     if(req->message->len > 0){
         g_string_assign(resp->msgBody, req->message->str);
     }
+    g_string_append(resp->msgBody, "\n");
+    g_string_append(resp->msgBody, req->headers->str);
 
     GString *colour = g_string_new("");
     addHtmlToMsgBody(resp->msgBody, colour);
 
     // Headers
-    g_string_printf(resp->headers, "%d\r\n", (int) resp->msgBody->len);
-    g_string_prepend(resp->headers, "Content-Length: ");
+    GString *contentLength = g_string_new("");
+    g_string_printf(contentLength, "Content-Length: %d\r\n", (int) resp->msgBody->len);
+    g_string_prepend(resp->headers, contentLength->str);
 
     g_string_free(colour, TRUE);
-}
-
-int readFile(struct httpRequest *req, struct httpResponse *resp)
-{
-    GString *fname = g_string_erase(req->target, 0, 1); // Remove first '/'
-    FILE *fp/* = fopen(fname->str, "r")*/;
-
-    int retVal = 1;
-    if((fp = fopen(fname->str, "r")) == NULL) 
-    {
-      printf("error opening file\n");
-      return 1;
-
-    }
-
-    /*get the length of the file */    
-    fseek(fp, 0, SEEK_END); // Move fstream to end of file
-    size_t len = ftell(fp);
-    fseek(fp, 0, SEEK_SET); // Move to start of file
-
-    char *buf;
-    if((buf = malloc(len)) != NULL)
-    {
-        if(fread(buf, 1, len, fp))
-        {
-            g_string_assign(resp->msgBody, buf);
-            retVal = 0; // SUCCESS
-        }
-        free(buf);
-    }
-    fclose(fp);
-    g_string_free(fname, TRUE);
-
-    return retVal;
 }

@@ -30,13 +30,14 @@ void extractHostFromHeaders(GString *headers, GString *host){
 }
 
 void addHtmlToMsgBody(GString *msgBody, GString *colour){
-    char **msgArray = g_strsplit(msgBody->str, "\n", -1);
+    char **msgArray = g_strsplit(msgBody->str, "\r\n", -1);
     int counter = 0;
     g_string_assign(msgBody, "");
     while(msgArray[counter]){
         g_string_append(msgBody, "<p>");
         g_string_append(msgBody, msgArray[counter]);
         g_string_append(msgBody, "</p>\n");
+
         counter += 1;
     }
     if(colour->len > 0){
@@ -69,4 +70,41 @@ void parsePage(GString *target, GString *page){
         g_string_assign(page, pageArray[0]);
         g_strfreev(pageArray);
     }
+}
+
+void parseHeaders(GString *headers){
+    if(headerDict != NULL){
+        freeDict();
+    }
+    headerDict = g_hash_table_new(g_str_hash, g_str_equal);
+
+    char **headerArray = g_strsplit(headers->str, "\r\n", -1);
+
+    int counter = 0;
+    while(headerArray[counter]){
+        char **headerLine = g_strsplit(headerArray[counter], ": ", 2);
+        char key[64], data[64];
+        strncpy(key, headerLine[0], 64);
+        strncpy(data, headerLine[1], 64);
+
+        g_hash_table_insert(headerDict, key, data);
+
+        g_strfreev(headerLine);
+        counter += 1;
+    }
+
+    g_strfreev(headerArray);
+}
+
+void getHeaderData(GString *header){
+    gpointer elem = g_hash_table_lookup(headerDict, header->str);
+    if(elem)
+        g_string_assign(header, (char *) elem);
+    else
+        g_string_assign(header, "");
+}
+
+void freeDict(){
+    g_hash_table_destroy(headerDict);
+    headerDict = NULL;
 }

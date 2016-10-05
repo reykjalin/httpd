@@ -15,7 +15,8 @@
 #include <arpa/inet.h> // inet_ntop()
 
 void respond();
-void createResponse(struct httpRequest *request, struct httpResponse *resposne, struct sockaddr_in *client);
+void createResponse(struct httpRequest *request, struct httpResponse *resposne,
+                    struct sockaddr_in *client, gboolean closeConnection);
 void sendResponse(struct httpResponse *response, int connectionSocket);
 
 // Init and free functions
@@ -25,7 +26,8 @@ void freeHttpResponseStruct(struct httpResponse *response);
 /**
  * generateHeadResponse - Generates a response to a HEAD request
  */
-void generateHeadResponse(struct httpResponse *resp, unsigned int statusCode);
+void generateStatusLine(struct httpResponse *resp, unsigned int statusCode);
+void generateConnectionHeader(GString *headers, gboolean closeConnection);
 /**
  * generateGetResponse - Generate a response to a GET request on the form
  * <!DOCTYPE html>
@@ -35,19 +37,9 @@ void generateHeadResponse(struct httpResponse *resp, unsigned int statusCode);
  *
  * As is stated in project description
  */
-void generateGetResponse(struct httpResponse *resp, struct httpRequest *req,
-                         int statusCode, struct sockaddr_in *client);
-
-void generatePostResponse(struct httpResponse *resp, struct httpRequest *req, int statusCode);
-
-
-void sendFile(char *file, int sockId);
-
-/**
- * readFile - reads the file requested by the client and stores
- * the contents of the file in the httpResponse struct 'resp'.
- * Returns 0 on success, returns 1 otherwise.
- */
-int readFile(struct httpRequest *req, struct httpResponse *resp);
+void generateGetResponse(struct httpResponse *resp, struct httpRequest *req, struct sockaddr_in *client);
+void generateGetMsgBody(struct httpResponse *resp, GString *colour,
+                        struct httpRequest *req, struct sockaddr_in *client);
+void generatePostResponse(struct httpResponse *resp, struct httpRequest *req);
 
 #endif
