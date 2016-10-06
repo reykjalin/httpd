@@ -5,6 +5,22 @@ If the request was empty, the server waits for up to 30 seconds before closing t
 
 After the request has been processed a response is generated depending on what kind of
 request was received.
+
+The server can not handle parallel connections.
+
+
+
+Usage:
+To build the program move to the main directory and run
+make -C src
+
+To run the server run
+./httpd <port>
+    port: Port number used for server connection
+
+
+
+Implementation Details:
 HEAD:
   A simple header with 200 OK response is sent back
 GET:
@@ -21,11 +37,3 @@ background color set as the one in the query.
 An error is sent (400 Bad Request) if the http client fails to provide a Host header.
 No other error responses have been implemented.
 
-
-Usage:
-To build the program move to the main directory and run
-make -C src
-
-To run the server run
-./serv <port>
-    port: Port number used for server connection
