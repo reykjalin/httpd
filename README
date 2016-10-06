@@ -24,9 +24,7 @@ Implementation Details:
 HEAD:
   A simple header with 200 OK response is sent back
 GET:
-  A page is generated containing the requested URL and headers, although headers are currently
-  not working due to access issues in the data structure. Headers are accessible through the
-  httpRequest struct, but not through the hash table provided in utility.h.
+  A page is generated containing the requested URL along with http headers
 POST:
   A page is generated containing the posted data
 
