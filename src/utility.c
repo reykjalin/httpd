@@ -72,39 +72,27 @@ void parsePage(GString *target, GString *page){
     }
 }
 
-void parseHeaders(GString *headers){
-    if(headerDict != NULL){
-        freeDict();
-    }
-    headerDict = g_hash_table_new(g_str_hash, g_str_equal);
+void getHeaderData(struct httpRequest *req, GString *header){
+    char **headerArray = g_strsplit(req->headers->str, "\r\n", -1);
 
-    char **headerArray = g_strsplit(headers->str, "\r\n", -1);
-
+    gboolean changed = FALSE;
     int counter = 0;
     while(headerArray[counter]){
         char **headerLine = g_strsplit(headerArray[counter], ": ", 2);
-        char key[64], data[64];
-        strncpy(key, headerLine[0], 64);
-        strncpy(data, headerLine[1], 64);
 
-        g_hash_table_insert(headerDict, key, data);
+        if( !(strncmp(headerLine[0], header->str, header->len)) ){
+            g_string_assign(header, headerLine[1]);
+            g_strfreev(headerLine);
+            changed = TRUE;
+            break;
+        }
 
         g_strfreev(headerLine);
         counter += 1;
     }
 
-    g_strfreev(headerArray);
-}
-
-void getHeaderData(GString *header){
-    gpointer elem = g_hash_table_lookup(headerDict, header->str);
-    if(elem)
-        g_string_assign(header, (char *) elem);
-    else
+    if(!changed)
         g_string_assign(header, "");
-}
 
-void freeDict(){
-    g_hash_table_destroy(headerDict);
-    headerDict = NULL;
+    g_strfreev(headerArray);
 }

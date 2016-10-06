@@ -14,6 +14,8 @@
 #include <netinet/in.h> // struct sockaddr_in
 #include <arpa/inet.h> // inet_ntop()
 
+GHashTable *headerDict;
+
 void respond();
 void createResponse(struct httpRequest *request, struct httpResponse *resposne,
                     struct sockaddr_in *client, gboolean closeConnection);
@@ -41,5 +43,6 @@ void generateGetResponse(struct httpResponse *resp, struct httpRequest *req, str
 void generateGetMsgBody(struct httpResponse *resp, GString *colour,
                         struct httpRequest *req, struct sockaddr_in *client);
 void generatePostResponse(struct httpResponse *resp, struct httpRequest *req);
+
 
 #endif

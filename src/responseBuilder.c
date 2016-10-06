@@ -89,19 +89,22 @@ void generateGetResponse(struct httpResponse *resp, struct httpRequest *req, str
     generateGetMsgBody(resp, colour, req, client);
 
     if(colour->len <= 0){
+
+        // Test getHeaderData function
         GString *header = g_string_new("Connection");
-        getHeaderData(header);
+        getHeaderData(req, header);
+
         if(header->len > 0){
             g_string_append(resp->msgBody, "\r\n");
-            g_string_append(resp->msgBody, req->headers->str);
+            g_string_append(resp->msgBody, header->str);
         }
 
         g_string_assign(header, "Host");
-        getHeaderData(header);
+        getHeaderData(req, header);
 
         if(header->len > 0){
             g_string_append(resp->msgBody, "\r\n");
-            g_string_append(resp->msgBody, req->headers->str);
+            g_string_append(resp->msgBody, header->str);
         }
         g_string_append(resp->msgBody, "\r\n");
         g_string_free(header, TRUE);
@@ -183,8 +186,6 @@ void generatePostResponse(struct httpResponse *resp, struct httpRequest *req)
     if(req->message->len > 0){
         g_string_assign(resp->msgBody, req->message->str);
     }
-    g_string_append(resp->msgBody, "\n");
-    g_string_append(resp->msgBody, req->headers->str);
 
     GString *colour = g_string_new("");
     addHtmlToMsgBody(resp->msgBody, colour);

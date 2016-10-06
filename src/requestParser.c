@@ -14,8 +14,6 @@ void parseRequest(char *req, struct httpRequest *parsed){
     g_strfreev(reqLines);
     g_strfreev(reqHeader);
     g_strfreev(reqHeadersAndMsg);
-
-    parseHeaders(parsed->headers);
 }
 
 void initRequestStruct(struct httpRequest *req){

@@ -10,7 +10,7 @@ LDLIBS = requestParser.o responseBuilder.o utility.o logger.o
 all: httpd
 
 httpd: obj
-	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) httpd.c -o serv
+	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) httpd.c -o httpd
 
 obj:
 	$(CC) $(CFLAGS) $(LDFLAGS) -c requestParser.c -o requestParser.o

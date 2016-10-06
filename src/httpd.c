@@ -123,7 +123,6 @@ int main(int arg, char** argv)
                 break;
 
             message[n] = '\0';
-            fprintf(stdout, "Received:\n%s\n", message);
 
             struct httpRequest req;
             initRequestStruct(&req);
@@ -146,7 +145,6 @@ int main(int arg, char** argv)
 
             freeRequestStruct(&req);
             freeHttpResponseStruct(&response);
-            freeDict();
         }
 
         shutdown(connectionSocket, SHUT_RDWR);

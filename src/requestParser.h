@@ -5,6 +5,7 @@
 #include "header.h"
 #include "utility.h"
 
+
 /**
  * parseRequest - Parses request message 'req' received from client
  * and stores information in httpRequest struct 'parsed'
